@@ -1,0 +1,40 @@
+# The name of the mod loader type to load - for regular FML @Mod mods it should be javafml
+modLoader="javafml"
+# A version range to match for said mod loader - for regular FML @Mod it will be the forge version
+# Forge for 1.19 is version 41
+loaderVersion="[41,)"
+# The license for your mod. This is mandatory and allows for easier comprehension of your redistributive properties.
+# Review your options at https://choosealicense.com/. All rights reserved is the default copyright stance, and is thus the default here.
+license="All Rights Reserved"
+# A URL to refer people to when problems occur with this mod
+issueTrackerURL="https://github.com/SilentSniperoo/forge_base_assault/issues"
+# If the mods defined in this file should show as separate resource packs
+showAsResourcePack=false
+
+[[mods]]
+  modId="base_assault"
+  version="1.0.0.0"
+  displayName="Base Assault"
+  updateJSONURL="https://github.com/SilentSniperoo/forge_base_assault/blob/main/versions.json"
+  displayURL="https://github.com/SilentSniperoo/forge_base_assault"
+  logoFile="logo.png"
+  credits="SilentSniperoo"
+  authors="SilentSniperoo"
+  description='''
+  Adds simple commands and rules for timed PvP events. For example, tag can be played, as can lava monster, or hunger games.
+  '''
+  displayTest="MATCH_VERSION"
+
+  [[dependencies.base_assault]]
+    modId="forge"
+    mandatory=true
+    versionRange="[41,)"
+    ordering="NONE"
+    side="BOTH"
+
+  [[dependencies.base_assault]]
+    modId="minecraft"
+    mandatory=true
+    versionRange="[1.19,1.20)"
+    ordering="NONE"
+    side="BOTH"
