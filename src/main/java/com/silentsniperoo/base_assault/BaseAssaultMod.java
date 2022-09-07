@@ -23,6 +23,16 @@ import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegistryObject;
+
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.HashMap;
+
+import javax.json.*;
+import javax.json.stream.JsonGenerator;
+
 import org.slf4j.Logger;
 
 // The value here should match an entry in the META-INF/mods.toml file
@@ -31,6 +41,8 @@ public class BaseAssaultMod
 {
     // Define mod id in a common place for everything to reference
     public static final String MODID = "base_assault";
+    // Location of the configuration files for administrators to use
+    public static final String SERVER_CONFIG = "config/base_assault.json";
     // Directly reference a slf4j logger
     private static final Logger LOGGER = LogUtils.getLogger();
     // Create a Deferred Register to hold Blocks which will all be registered under the "base_assault" namespace
@@ -43,6 +55,11 @@ public class BaseAssaultMod
     // Creates a new BlockItem with the id "base_assault:example_block", combining the namespace and path
     public static final RegistryObject<Item> EXAMPLE_BLOCK_ITEM = ITEMS.register("example_block", () -> new BlockItem(EXAMPLE_BLOCK.get(), new Item.Properties().tab(CreativeModeTab.TAB_BUILDING_BLOCKS)));
 
+    private static final boolean hasLoaded() { return serverConfig != null; }
+    private static JsonObject serverConfig = null;
+    private static JsonObject teams = null;
+    private static JsonObject games = null;
+    
     public BaseAssaultMod()
     {
         IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
@@ -72,7 +89,117 @@ public class BaseAssaultMod
     {
         // Do something when the server starts
         LOGGER.info("HELLO from server starting");
+        if (!load()) {
+        	LOGGER.warn("Missing configuration details in {}".formatted(SERVER_CONFIG));
+        }
     }
+
+    private static boolean load() {
+        serverConfig = getServerConfig();
+        if (serverConfig.isEmpty()) {
+        	return false;
+        }
+        teams = serverConfig.getJsonObject("teams");
+        games = serverConfig.getJsonObject("games");
+        if (teams.isEmpty() || games.isEmpty()) {
+        	serverConfig = null;
+        	teams = null;
+        	games = null;
+        	return false;
+        }
+    	return true;
+    }
+    
+	private static JsonObject getServerConfig() {
+		// Get default
+		JsonObject serverConfig = Json.createObjectBuilder()
+				.add("teams", Json.createObjectBuilder()
+						.add("Tower Lords", Json.createObjectBuilder()
+								.add("score", 0)
+								.add("players", Json.createArrayBuilder()
+										.add("TheMaybeMonster")
+										.add("TheYesMonster")))
+						.add("Tortuga Kings", Json.createObjectBuilder()
+								.add("score", 0)
+								.add("players", Json.createArrayBuilder()
+										.add("TheNoMonster"))))
+				.add("games",  Json.createObjectBuilder()
+						.add("Tag", Json.createObjectBuilder()
+								.add("base_game", "tag")
+								.add("time_limit", 30.0) // In seconds
+								.add("chasing_players", Json.createArrayBuilder()
+										.add("@teams")) // Each team gets a turn as "it"
+								.add("fleeing_players", Json.createArrayBuilder()
+										.add("*")))
+						.add("Marco Polo", Json.createObjectBuilder()
+								.add("base_game", "tag")
+								.add("time_limit", 180.0)
+								.add("chasing_players", Json.createArrayBuilder()
+										.add("@nose-goes")) // Last person to sneak on each team
+								.add("fleeing_players", Json.createArrayBuilder()
+										.add("*"))
+								.add("blindness", true)
+								// Ring a bell or blow a horn to apply effect for a duration
+								.add("spectral", Json.createObjectBuilder()
+										.add("duration", 1.0)
+										.add("cooldown", 2.0))
+								// Avoid spectral effect for a duration by sneaking
+								.add("antispectral", Json.createObjectBuilder()
+										.add("duration", 3.0)
+										.add("cooldown", 4.0)))
+						.add("Ender Tag", Json.createObjectBuilder()
+								.add("base_game", "tag")
+								.add("time_limit", 20.0)
+								.add("chasing_players", Json.createArrayBuilder()
+										.add("@turns")) // Each player gets a turn to be the seeker for their team 
+								.add("fleeing_players", Json.createArrayBuilder()
+										.add("*"))
+								.add("teleport", 1.0)) // Cooldown of teleport
+						.add("Lava Monster", Json.createObjectBuilder()
+								.add("base_game", "tag")
+								.add("time_limit", 300.0)
+								.add("chasing_players", Json.createArrayBuilder()
+										.add("@teams"))
+								.add("fleeing_players", Json.createArrayBuilder()
+										.add("*"))
+								.add("lava_blocks", Json.createArrayBuilder()
+										.add("lava")
+										.add("magma")
+										.add("basalt")
+										.add("netherack")
+										.add("soul_sand")
+										.add("smooth_soul_sand")))
+						.add("Hunger Games", Json.createObjectBuilder()
+								.add("base_game", "pvp")
+								.add("time_limit", 600.0)
+								.add("tribute_players", Json.createArrayBuilder() // Tributes fight
+										.add("@volunteer"))
+								.add("sponsor_players", Json.createArrayBuilder() // Sponsors help their team's tributes
+										.add("*"))))
+				// Dodge Ball
+				// Hide and Seek
+				.build();
+		// Attempt to read non-default
+        try {
+            JsonReader reader = Json.createReader(new FileReader(SERVER_CONFIG));
+            serverConfig = reader.readObject();
+            reader.close();
+        }
+        catch (Exception e) {
+        	// Attempt to write default
+        	try {
+        		HashMap<String, Object> options = new HashMap<String, Object>();
+        		options.put(JsonGenerator.PRETTY_PRINTING, true);
+        		JsonWriterFactory factory = Json.createWriterFactory(options);
+				JsonWriter writer = factory.createWriter(new FileWriter(SERVER_CONFIG));
+				writer.writeObject(serverConfig);
+				writer.close();
+			} catch (Exception e2) {
+				e2.printStackTrace();
+			}
+        }
+        return serverConfig;
+	}
 
     // You can use EventBusSubscriber to automatically register all static methods in the class annotated with @SubscribeEvent
     @Mod.EventBusSubscriber(modid = MODID, bus = Mod.EventBusSubscriber.Bus.MOD)
