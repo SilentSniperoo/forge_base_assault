@@ -2,6 +2,7 @@ package com.silentsniperoo.base_assault;
 
 import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
@@ -18,6 +19,7 @@ import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.event.lifecycle.InterModEnqueueEvent;
 import net.minecraftforge.fml.event.lifecycle.InterModProcessEvent;
+import net.minecraftforge.event.entity.EntityJoinLevelEvent;
 import net.minecraftforge.event.server.ServerStartingEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.registries.DeferredRegister;
@@ -46,7 +48,7 @@ public class BaseAssaultMod
     // Directly reference a slf4j logger
     private static final Logger LOGGER = LogUtils.getLogger();
 
-    private static boolean hasLoaded() { return serverConfig != null; }
+    private static final boolean hasLoaded() { return serverConfig != null; }
     private static JsonObject serverConfig = null;
     private static JsonObject teams = null;
     private static JsonObject games = null;
@@ -75,6 +77,17 @@ public class BaseAssaultMod
         if (!load()) {
         	LOGGER.warn("Missing configuration details in %s".formatted(SERVER_CONFIG));
         }
+    }
+
+    @SubscribeEvent
+    public static void onEvent(EntityJoinLevelEvent event) {
+    	if (event.getEntity() instanceof Player) {
+    		Player player = (Player)event.getEntity();
+    		LOGGER.info("Player of name[%s], display name[%s], and scoreboard name[%s] joined!".formatted(
+    				player.getName(),
+    				player.getDisplayName(),
+    				player.getScoreboardName()));
+    	}
     }
 
     private static boolean load() {
